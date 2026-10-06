@@ -1,0 +1,19 @@
+min-players: 1
+max-players: 20
+
+item-interval-seconds: 5
+
+items:
+  - COBWEB
+  - SLIME_BLOCK
+  - SCAFFOLDING
+  - SNOWBALL
+  - EGG
+  - BOW
+  - ARROW
+  - SPLASH_POTION
+  - SHIELD
+  - ENDER_PEARL
+  - GOLDEN_APPLE
+  - WATER_BUCKET
+  - TNT

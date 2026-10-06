@@ -1,0 +1,13 @@
+name: ArcadeBedrockPillars
+description: Bedrock Pillars minigame for ArcadeCore
+version: '1.5.1'
+main: org.drappula.arcadeBedrockPillars.ArcadeBedrockPillars
+api-version: '1.21.11'
+load: POSTWORLD
+authors: [ drappula, TejasLamba2006 ]
+dependencies:
+  server:
+    ArcadeCore:
+      load: BEFORE
+      required: true
+      join-classpath: true
