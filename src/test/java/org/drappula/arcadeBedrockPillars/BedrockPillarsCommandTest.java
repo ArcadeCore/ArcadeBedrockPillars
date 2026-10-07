@@ -70,7 +70,7 @@ class BedrockPillarsCommandTest extends PluginTest {
         Set<String> children = node.getChildren().stream()
                 .map(child -> child.getName())
                 .collect(Collectors.toSet());
-        assertEquals(Set.of("join", "leave", "debug"), children);
+        assertEquals(Set.of("join", "leave", "chaos", "debug"), children);
     }
 
     @Test
@@ -125,6 +125,58 @@ class BedrockPillarsCommandTest extends PluginTest {
         invoke("leave", contextWithSender(server.getConsoleSender()), false);
 
         assertTrue(nextConsoleMessage().contains("Only players can leave"));
+    }
+
+    /** Spectator in a match of this game with one alive target player. */
+    private IMatch chaosMatch(PlayerMock spectator, PlayerMock target) {
+        var matchManager = mock(org.drappula.arcadeApi.systems.game.IMatchManager.class);
+        when(api.getMatchManager()).thenReturn(matchManager);
+        IMatch match = mock(IMatch.class);
+        when(match.getGame()).thenReturn(game);
+        when(match.isSpectating(spectator)).thenReturn(true);
+        IParticipant alive = mock(IParticipant.class);
+        when(alive.getPlayer()).thenReturn(target);
+        when(match.getAliveParticipants()).thenReturn(List.of(alive));
+        when(matchManager.getMatch(spectator)).thenReturn(java.util.Optional.of(match));
+        plugin.getConfig().set("items", List.of("COBWEB"));
+        return match;
+    }
+
+    @Test
+    void chaosGivesTargetAnItemAndBroadcastsWithMessagePrefix() throws Exception {
+        PlayerMock spectator = server.addPlayer();
+        PlayerMock target = server.addPlayer();
+        IMatch match = chaosMatch(spectator, target);
+
+        invoke("chaos", contextWithSender(spectator), true);
+
+        assertTrue(target.getInventory().contains(org.bukkit.Material.COBWEB));
+        // The core drops unprefixed broadcast text for players.
+        verify(match).broadcast(org.mockito.ArgumentMatchers.startsWith("message:"));
+    }
+
+    @Test
+    void chaosHonoursCooldown() throws Exception {
+        PlayerMock spectator = server.addPlayer();
+        PlayerMock target = server.addPlayer();
+        IMatch match = chaosMatch(spectator, target);
+
+        invoke("chaos", contextWithSender(spectator), true);
+        invoke("chaos", contextWithSender(spectator), true);
+
+        verify(match, org.mockito.Mockito.times(1)).broadcast(org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
+    void chaosRejectsNonSpectators() throws Exception {
+        PlayerMock player = server.addPlayer();
+        var matchManager = mock(org.drappula.arcadeApi.systems.game.IMatchManager.class);
+        when(api.getMatchManager()).thenReturn(matchManager);
+        when(matchManager.getMatch(player)).thenReturn(java.util.Optional.empty());
+
+        invoke("chaos", contextWithSender(player), true);
+
+        assertTrue(nextMessage(player).contains("must be spectating"));
     }
 
     @Test

@@ -45,12 +45,14 @@ class BedrockPillarsGameTest extends PluginTest {
     void registersPoolOptions() {
         var options = game.getMapConfigOptions();
 
-        assertEquals(3, options.size());
+        assertEquals(4, options.size());
         assertEquals("lava-blocks-rise-per-minute", options.get(0).key());
         assertEquals("2", options.get(0).defaultValue());
         assertEquals("lava-start-y", options.get(1).key());
         assertEquals("64", options.get(1).defaultValue());
         assertEquals("border-size", options.get(2).key());
         assertEquals("0", options.get(2).defaultValue());
+        assertEquals("item-interval-seconds", options.get(3).key());
+        assertEquals("0", options.get(3).defaultValue());
     }
 }

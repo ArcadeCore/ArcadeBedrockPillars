@@ -83,7 +83,7 @@ class BedrockPillarsListenerTest extends PluginTest {
 
         server.getPluginManager().callEvent(deathOf(player));
 
-        verify(participant).eliminate();
+        verify(participant).eliminate(null);
     }
 
     @Test

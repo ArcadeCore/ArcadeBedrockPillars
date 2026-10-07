@@ -10,6 +10,14 @@ public class BedrockPillarsGame implements Game {
     public static final String LAVA_START_Y_KEY = "lava-start-y";
     /** World border size during the match; 0 leaves the border alone. */
     public static final String BORDER_SIZE_KEY = "border-size";
+    /** Seconds between item drops; 0 falls back to the global {@code item-interval-seconds}. */
+    public static final String ITEM_INTERVAL_KEY = "item-interval-seconds";
+
+    /** Spectator chaos uses so far, per match; cleared on match end. */
+    final java.util.Map<org.drappula.arcadeApi.systems.game.IMatch, Integer> chaosUses = new java.util.HashMap<>();
+    /** Last chaos use per spectator (epoch ms). */
+    final java.util.Map<java.util.UUID, Long> chaosLast = new java.util.HashMap<>();
+
     @Override
     public String getId() {
         return "bedrock-pillars";
@@ -40,6 +48,7 @@ public class BedrockPillarsGame implements Game {
         return java.util.List.of(
                 MapConfigOption.integer(LAVA_RATE_KEY, 2, 0, 60),
                 MapConfigOption.integer(LAVA_START_Y_KEY, 64, -64, 320),
-                MapConfigOption.integer(BORDER_SIZE_KEY, 0, 0, 60000000));
+                MapConfigOption.integer(BORDER_SIZE_KEY, 0, 0, 60000000),
+                MapConfigOption.integer(ITEM_INTERVAL_KEY, 0, 0, 3600));
     }
 }

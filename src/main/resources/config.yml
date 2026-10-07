@@ -17,3 +17,8 @@ items:
   - GOLDEN_APPLE
   - WATER_BUCKET
   - TNT
+
+# Spectator /bp chaos: drops a random item on a random alive player
+chaos:
+  cooldown-seconds: 20
+  max-per-match: 10

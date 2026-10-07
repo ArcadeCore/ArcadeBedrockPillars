@@ -20,12 +20,52 @@ public class BedrockPillarsCommand {
                 .executes(BedrockPillarsCommand::info))
                 .then(Commands.literal("join").executes(ctx -> join(ctx, game))))
                 .then(Commands.literal("leave").executes(BedrockPillarsCommand::leave)))
+                .then(Commands.literal("chaos").executes(ctx -> chaos(ctx, game)))
                 .then(Commands.literal("debug")
                         .requires(source -> source.getSender().hasPermission("bedrockpillars.debug"))
                         .then(Commands.literal("win").executes(ctx -> debugWin(ctx, game)))
                         .then(Commands.literal("lose").executes(ctx -> debugLose(ctx, game)))
                         .then(Commands.literal("end").executes(ctx -> debugEnd(ctx, game)))))
                 .build();
+    }
+
+    /** Spectators drop a random item on a random surviving player. Limited by cooldown and per-match cap. */
+    private static int chaos(CommandContext<CommandSourceStack> ctx, BedrockPillarsGame game) {
+        if (!(ctx.getSource().getSender() instanceof Player spectator)) {
+            ctx.getSource().getSender().sendRichMessage("<red>Only spectators can cause chaos.");
+            return 1;
+        }
+        var match = ArcadeAPIProvider.get().getMatchManager().getMatch(spectator).orElse(null);
+        if (match == null || !match.getGame().getId().equals(game.getId()) || !match.isSpectating(spectator)) {
+            spectator.sendRichMessage("<red>You must be spectating a Bedrock Pillars match.");
+            return 1;
+        }
+        var cfg = ArcadeBedrockPillars.get().getConfig();
+        long cooldownMs = cfg.getLong("chaos.cooldown-seconds", 20) * 1000L;
+        int cap = cfg.getInt("chaos.max-per-match", 10);
+        long now = System.currentTimeMillis();
+        Long last = game.chaosLast.get(spectator.getUniqueId());
+        if (last != null && now - last < cooldownMs) {
+            spectator.sendRichMessage("<red>Chaos on cooldown: " + ((cooldownMs - (now - last)) / 1000 + 1) + "s.");
+            return 1;
+        }
+        if (game.chaosUses.getOrDefault(match, 0) >= cap) {
+            spectator.sendRichMessage("<red>This match has had enough chaos.");
+            return 1;
+        }
+        List<IParticipant> alive = match.getAliveParticipants();
+        if (alive.isEmpty()) {
+            return 1;
+        }
+        IParticipant target = alive.get(java.util.concurrent.ThreadLocalRandom.current().nextInt(alive.size()));
+        if (!new ItemDropTask(match).give(target.getPlayer())) {
+            return 1;
+        }
+        game.chaosLast.put(spectator.getUniqueId(), now);
+        game.chaosUses.merge(match, 1, Integer::sum);
+        // Core routes by prefix; unprefixed text is dropped for players.
+        match.broadcast("message:<light_purple>" + spectator.getName() + " sent chaos to " + target.getPlayer().getName() + "!");
+        return 1;
     }
 
     private static int info(CommandContext<CommandSourceStack> ctx) {

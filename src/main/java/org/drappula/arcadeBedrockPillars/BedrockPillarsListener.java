@@ -43,7 +43,23 @@ public class BedrockPillarsListener implements Listener {
     public void onDeath(PlayerDeathEvent event) {
         IParticipant participant = ArcadeAPIProvider.get().getParticipant((Game) game, event.getEntity());
         if (participant != null && !participant.isEliminated()) {
-            participant.eliminate();
+            participant.eliminate(event.getEntity().getKiller());
+        }
+    }
+
+    private void recordStats(IMatch match, IParticipant victim, Player killer) {
+        var stats = ArcadeAPIProvider.get().getStatsManager();
+        try {
+            if (match.getStartedAt() != null) {
+                long secs = java.time.Duration.between(match.getStartedAt(), java.time.Instant.now()).toSeconds();
+                stats.addStat(victim.getPlayer().getUniqueId(), victim.getPlayer().getName(),
+                        game.getId(), "survival_seconds", (int) secs);
+            }
+            if (killer != null && !killer.equals(victim.getPlayer())) {
+                stats.addStat(killer.getUniqueId(), killer.getName(), game.getId(), "kills", 1);
+            }
+        } catch (java.sql.SQLException e) {
+            ArcadeBedrockPillars.get().getSLF4JLogger().error("Failed to record Bedrock Pillars stats", e);
         }
     }
 
@@ -53,6 +69,7 @@ public class BedrockPillarsListener implements Listener {
         if (!match.getGame().getId().equals(game.getId())) {
             return;
         }
+        recordStats(match, event.getParticipant(), event.getKiller());
         // The victim still counts as alive while this event fires, so decide
         // next tick once elimination bookkeeping has completed.
         Bukkit.getScheduler().runTask((Plugin) ArcadeBedrockPillars.get(), () -> {
@@ -90,7 +107,9 @@ public class BedrockPillarsListener implements Listener {
                 border.setSize(borderSize);
             }
         }
-        int itemInterval = Math.max(1, ArcadeBedrockPillars.get().getConfig().getInt("item-interval-seconds"));
+        int mapInterval = map != null ? map.getIntConfig(BedrockPillarsGame.ITEM_INTERVAL_KEY) : 0;
+        int itemInterval = mapInterval > 0 ? mapInterval
+                : Math.max(1, ArcadeBedrockPillars.get().getConfig().getInt("item-interval-seconds"));
         ItemDropTask itemTask = new ItemDropTask(match);
         itemTask.runTaskTimer((Plugin) ArcadeBedrockPillars.get(), (long) itemInterval * 20L, (long) itemInterval * 20L);
         itemTasks.put(match, itemTask);
@@ -135,6 +154,7 @@ public class BedrockPillarsListener implements Listener {
         if (!match.getGame().getId().equals(game.getId())) {
             return;
         }
+        game.chaosUses.remove(match);
         ItemDropTask itemTask = itemTasks.remove(match);
         if (itemTask != null) {
             itemTask.cancel();

@@ -35,12 +35,21 @@ public class ItemDropTask extends BukkitRunnable {
             if (participant.isEliminated()) {
                 continue;
             }
-            Material material = pool.get(ThreadLocalRandom.current().nextInt(pool.size()));
-            int amount = switch (material) {
-                case ARROW, SNOWBALL, EGG -> 8;
-                default -> 1;
-            };
-            participant.getPlayer().getInventory().addItem(new ItemStack(material, amount));
+            give(participant.getPlayer());
         }
+    }
+
+    /** Gives one random pool item to {@code player}; false if the pool is empty. */
+    public boolean give(org.bukkit.entity.Player player) {
+        if (pool.isEmpty()) {
+            return false;
+        }
+        Material material = pool.get(ThreadLocalRandom.current().nextInt(pool.size()));
+        int amount = switch (material) {
+            case ARROW, SNOWBALL, EGG -> 8;
+            default -> 1;
+        };
+        player.getInventory().addItem(new ItemStack(material, amount));
+        return true;
     }
 }
