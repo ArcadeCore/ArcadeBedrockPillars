@@ -24,14 +24,14 @@ dependencies {
     implementation("com.github.cryptomorin:XSeries:13.7.1")
     // Provided at runtime by ArcadeCore (plugin.yml depend),
     // so compileOnly keeps the jar thin like the 1.0.0 release.
-    compileOnly("org.drappula:ArcadeAPI:1.0.0")
+    compileOnly("org.drappula:ArcadeAPI:1.1.0")
 
     // compileOnly paper-api is absent from the test runtime classpath,
     // so tests that touch Bukkit/Adventure classes need it explicitly.
     // MockBukkit first: it ships its own paper-api and must win classpath order.
     // compileOnly deps stay out of the test classpath, so tests that touch
     // ArcadeAPI classes need it explicitly (same pattern as paper-api below).
-    testImplementation("org.drappula:ArcadeAPI:1.0.0")
+    testImplementation("org.drappula:ArcadeAPI:1.1.0")
     testImplementation("org.mockbukkit.mockbukkit:mockbukkit-v1.21:4.116.3")
     testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
