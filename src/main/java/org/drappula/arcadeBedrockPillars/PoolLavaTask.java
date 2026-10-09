@@ -8,6 +8,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.drappula.arcadeApi.systems.map.IArcadeMap;
 
@@ -32,7 +33,7 @@ public class PoolLavaTask extends BukkitRunnable {
     private final int minZ;
     private final int maxZ;
     private final int capY;
-    private final Map<Location, Material> placed = new LinkedHashMap<Location, Material>();
+    private final Map<Location, BlockState> placed = new LinkedHashMap<Location, BlockState>();
     private int currentY;
     private long seconds;
     private boolean restored;
@@ -118,7 +119,7 @@ public class PoolLavaTask extends BukkitRunnable {
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
                 Block block = world.getBlockAt(x, y, z);
-                placed.putIfAbsent(block.getLocation(), block.getType());
+                placed.putIfAbsent(block.getLocation(), block.getState());
                 block.setType(LAVA);
             }
         }
@@ -132,10 +133,10 @@ public class PoolLavaTask extends BukkitRunnable {
         } catch (IllegalStateException e) {
             // Never scheduled (e.g. in tests): nothing to cancel.
         }
-        for (Map.Entry<Location, Material> cell : placed.entrySet()) {
-            Location at = cell.getKey();
-            if (at.getWorld() == null) continue;
-            at.getWorld().getBlockAt(at).setType(cell.getValue());
+        for (Map.Entry<Location, BlockState> cell : placed.entrySet()) {
+            if (cell.getKey().getWorld() == null) continue;
+            // BlockState keeps the data value (1.8 to 1.12) and the block state (1.13+), not just the material.
+            cell.getValue().update(true, false);
         }
         placed.clear();
     }
