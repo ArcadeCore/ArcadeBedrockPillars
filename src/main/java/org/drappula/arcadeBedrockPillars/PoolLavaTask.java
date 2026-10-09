@@ -1,6 +1,7 @@
 package org.drappula.arcadeBedrockPillars;
 
 import java.util.LinkedHashMap;
+import com.cryptomorin.xseries.XMaterial;
 import java.util.List;
 import java.util.Map;
 import org.bukkit.Location;
@@ -20,6 +21,9 @@ import org.drappula.arcadeApi.systems.map.IArcadeMap;
 public class PoolLavaTask extends BukkitRunnable {
     static final int MARGIN = 3;
 
+    // STATIONARY_LAVA on 1.8-1.12, LAVA after the 1.13 flattening: XMaterial resolves it.
+    private static final Material LAVA = XMaterial.LAVA.parseMaterial();
+
     private final World world;
     private final int rate;
     private final int startY;
@@ -28,7 +32,7 @@ public class PoolLavaTask extends BukkitRunnable {
     private final int minZ;
     private final int maxZ;
     private final int capY;
-    private final Map<Location, Material> placed = new LinkedHashMap<>();
+    private final Map<Location, Material> placed = new LinkedHashMap<Location, Material>();
     private int currentY;
     private long seconds;
     private boolean restored;
@@ -115,7 +119,7 @@ public class PoolLavaTask extends BukkitRunnable {
             for (int z = minZ; z <= maxZ; z++) {
                 Block block = world.getBlockAt(x, y, z);
                 placed.putIfAbsent(block.getLocation(), block.getType());
-                block.setType(Material.LAVA);
+                block.setType(LAVA);
             }
         }
     }

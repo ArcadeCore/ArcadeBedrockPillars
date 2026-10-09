@@ -2,9 +2,6 @@ package org.drappula.arcadeBedrockPillars;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
-import net.kyori.adventure.bossbar.BossBar;
-import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -18,7 +15,7 @@ import org.drappula.arcadeApi.events.MatchEndEvent;
 import org.drappula.arcadeApi.events.MatchStateChangeEvent;
 import org.drappula.arcadeApi.events.ParticipantEliminateEvent;
 import org.drappula.arcadeApi.events.QueueEnterEvent;
-import org.drappula.arcadeApi.events.QueueLeaveEvent;
+import org.drappula.arcadeApi.message.Messages;
 import org.drappula.arcadeApi.systems.game.Game;
 import org.drappula.arcadeApi.systems.game.IMatch;
 import org.drappula.arcadeApi.systems.game.IParticipant;
@@ -27,12 +24,17 @@ import org.drappula.arcadeApi.systems.map.IArcadeMap;
 
 public class BedrockPillarsListener implements Listener {
     private final BedrockPillarsGame game;
-    private final Map<IMatch, ItemDropTask> itemTasks = new HashMap<>();
-    private final Map<IMatch, PoolLavaTask> lavaTasks = new HashMap<>();
-    private final Map<IMatch, BorderState> borders = new HashMap<>();
-    private final Map<UUID, BossBar> waitingBars = new HashMap<>();
+    private final Map<IMatch, ItemDropTask> itemTasks = new HashMap<IMatch, ItemDropTask>();
+    private final Map<IMatch, PoolLavaTask> lavaTasks = new HashMap<IMatch, PoolLavaTask>();
+    private final Map<IMatch, BorderState> borders = new HashMap<IMatch, BorderState>();
+    private static final class BorderState {
+        final double x, z, size;
 
-    private record BorderState(double x, double z, double size) {
+        BorderState(double x, double z, double size) {
+            this.x = x;
+            this.z = z;
+            this.size = size;
+        }
     }
 
     public BedrockPillarsListener(BedrockPillarsGame game) {
@@ -48,10 +50,10 @@ public class BedrockPillarsListener implements Listener {
     }
 
     private void recordStats(IMatch match, IParticipant victim, Player killer) {
-        var stats = ArcadeAPIProvider.get().getStatsManager();
+        org.drappula.arcadeApi.database.IGameStatsManager stats = ArcadeAPIProvider.get().getStatsManager();
         try {
             if (match.getStartedAt() != null) {
-                long secs = java.time.Duration.between(match.getStartedAt(), java.time.Instant.now()).toSeconds();
+                long secs = java.time.Duration.between(match.getStartedAt(), java.time.Instant.now()).getSeconds();
                 stats.addStat(victim.getPlayer().getUniqueId(), victim.getPlayer().getName(),
                         game.getId(), "survival_seconds", (int) secs);
             }
@@ -59,7 +61,7 @@ public class BedrockPillarsListener implements Listener {
                 stats.addStat(killer.getUniqueId(), killer.getName(), game.getId(), "kills", 1);
             }
         } catch (java.sql.SQLException e) {
-            ArcadeBedrockPillars.get().getSLF4JLogger().error("Failed to record Bedrock Pillars stats", e);
+            ArcadeBedrockPillars.get().getLogger().log(java.util.logging.Level.SEVERE, "Failed to record Bedrock Pillars stats", e);
         }
     }
 
@@ -90,9 +92,6 @@ public class BedrockPillarsListener implements Listener {
         if (!match.getGame().getId().equals(game.getId())) {
             return;
         }
-        for (IParticipant participant : match.getParticipants()) {
-            hideWaitingBar(participant.getPlayer());
-        }
         IArcadeMap map = match.getMap();
         if (map != null && map.getWorld() != null) {
             PoolLavaTask lavaTask = new PoolLavaTask(map);
@@ -120,32 +119,8 @@ public class BedrockPillarsListener implements Listener {
         if (!event.getGame().getId().equals(game.getId())) {
             return;
         }
-        Player player = event.getPlayer();
-        BossBar bar = BossBar.bossBar(Component.text("Waiting for players"), 1.0f,
-                BossBar.Color.BLUE, BossBar.Overlay.PROGRESS);
-        player.showBossBar(bar);
-        waitingBars.put(player.getUniqueId(), bar);
-        // If the join was denied by a later handler, take the bar back.
-        Bukkit.getScheduler().runTaskLater((Plugin) ArcadeBedrockPillars.get(), () -> {
-            if (!ArcadeAPIProvider.get().getQueueManager().isQueued(player)) {
-                hideWaitingBar(player);
-            }
-        }, 1L);
-    }
-
-    @EventHandler
-    public void onQueueLeave(QueueLeaveEvent event) {
-        if (!event.getGame().getId().equals(game.getId())) {
-            return;
-        }
-        hideWaitingBar(event.getPlayer());
-    }
-
-    private void hideWaitingBar(Player player) {
-        BossBar bar = waitingBars.remove(player.getUniqueId());
-        if (bar != null) {
-            player.hideBossBar(bar);
-        }
+        // No boss bar on 1.8, so the waiting hint is an action bar message everywhere.
+        Messages.send(event.getPlayer(), "actionbar:<blue>Waiting for players");
     }
 
     @EventHandler
@@ -166,8 +141,8 @@ public class BedrockPillarsListener implements Listener {
         BorderState previous = borders.remove(match);
         if (previous != null && match.getMap() != null && match.getMap().getWorld() != null) {
             org.bukkit.WorldBorder border = match.getMap().getWorld().getWorldBorder();
-            border.setCenter(previous.x(), previous.z());
-            border.setSize(previous.size());
+            border.setCenter(previous.x, previous.z);
+            border.setSize(previous.size);
         }
     }
 

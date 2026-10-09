@@ -1,6 +1,6 @@
 plugins {
     id("java")
-    id("xyz.jpenilla.run-paper") version "3.0.2"
+    id("com.gradleup.shadow") version "9.4.3"
 }
 
 import java.time.Duration
@@ -12,11 +12,17 @@ description = "Bedrock Pillars minigame for ArcadeCore"
 repositories {
     mavenCentral()
     maven("https://repo.papermc.io/repository/maven-public/")
+    maven("https://jitpack.io")
+    maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
-    // Provided at runtime by ArcadeCore (paper-plugin.yml: join-classpath: true),
+    compileOnly("org.spigotmc:spigot-api:1.8.8-R0.1-SNAPSHOT")
+    compileOnly("org.jetbrains:annotations:24.1.0")
+    compileOnly("org.jspecify:jspecify:1.0.0")
+    compileOnly("com.google.code.findbugs:jsr305:3.0.2")
+    implementation("com.github.cryptomorin:XSeries:13.7.1")
+    // Provided at runtime by ArcadeCore (plugin.yml depend),
     // so compileOnly keeps the jar thin like the 1.0.0 release.
     compileOnly("org.drappula:ArcadeAPI:1.0.0")
 
@@ -28,7 +34,6 @@ dependencies {
     testImplementation("org.drappula:ArcadeAPI:1.0.0")
     testImplementation("org.mockbukkit.mockbukkit:mockbukkit-v1.21:4.116.3")
     testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
-    testImplementation("net.kyori:adventure-text-logger-slf4j:4.24.0")
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     testImplementation("org.mockito:mockito-core:5.14.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -38,19 +43,22 @@ java {
     toolchain.languageVersion = JavaLanguageVersion.of(21)
 }
 
+// Production code must load on Java 8 servers; tests use the newer JDK.
+tasks.named<JavaCompile>("compileJava") {
+    options.release.set(8)
+}
+
 tasks {
-    test {
-        useJUnitPlatform()
+    shadowJar {
+        archiveClassifier.set("")
+        relocate("com.cryptomorin.xseries", "org.drappula.arcadeBedrockPillars.libs.xseries")
+    }
+    jar {
+        archiveClassifier.set("thin")
     }
 
-    runServer {
-        // Local Paper 1.21.11 test server with the plugin installed.
-        // ArcadeCore must be present too: copy its shadow jar into run/plugins
-        // (see scripts/prepare-run.sh) before launching.
-        // Memory is deliberately capped at 1G: a 2G server plus Gradle workers
-        // on a loaded desktop has OOM-crashed this machine before.
-        minecraftVersion("1.21.11")
-        jvmArgs("-Xms512M", "-Xmx1G")
+    test {
+        useJUnitPlatform()
     }
 
     // Real smoke test: boots Paper via runServer inside tmux with ArcadeCore
@@ -59,7 +67,7 @@ tasks {
     register("smokeTest", Exec::class) {
         group = "verification"
         description = "Boot a real Paper server in tmux and smoke-test ArcadeBedrockPillars enable + console command."
-        dependsOn("jar")
+        dependsOn("shadowJar")
         commandLine("bash", rootProject.file("scripts/smoke-test.sh").absolutePath)
         timeout.set(Duration.ofMinutes(15))
     }

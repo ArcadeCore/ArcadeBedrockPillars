@@ -1,7 +1,5 @@
 package org.drappula.arcadeBedrockPillars;
 
-import io.papermc.paper.command.brigadier.Commands;
-import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -25,8 +23,9 @@ public class ArcadeBedrockPillars extends JavaPlugin {
         saveDefaultConfig();
         ArcadeAPIProvider.get().getGameManager().registerGame((Game) game);
         getServer().getPluginManager().registerEvents((Listener) new BedrockPillarsListener(game), (Plugin) this);
-        getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS,
-                commands -> ((Commands) commands.registrar()).register(BedrockPillarsCommand.get(game)));
+        BedrockPillarsCommand command = new BedrockPillarsCommand(game);
+        getCommand("bp").setExecutor(command);
+        getCommand("bp").setTabCompleter(command);
     }
 
     @Override

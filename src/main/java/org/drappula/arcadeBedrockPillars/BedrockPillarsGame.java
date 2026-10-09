@@ -14,9 +14,9 @@ public class BedrockPillarsGame implements Game {
     public static final String ITEM_INTERVAL_KEY = "item-interval-seconds";
 
     /** Spectator chaos uses so far, per match; cleared on match end. */
-    final java.util.Map<org.drappula.arcadeApi.systems.game.IMatch, Integer> chaosUses = new java.util.HashMap<>();
+    final java.util.Map<org.drappula.arcadeApi.systems.game.IMatch, Integer> chaosUses = new java.util.HashMap<org.drappula.arcadeApi.systems.game.IMatch, Integer>();
     /** Last chaos use per spectator (epoch ms). */
-    final java.util.Map<java.util.UUID, Long> chaosLast = new java.util.HashMap<>();
+    final java.util.Map<java.util.UUID, Long> chaosLast = new java.util.HashMap<java.util.UUID, Long>();
 
     @Override
     public String getId() {
@@ -45,7 +45,7 @@ public class BedrockPillarsGame implements Game {
 
     @Override
     public java.util.List<MapConfigOption> getMapConfigOptions() {
-        return java.util.List.of(
+        return java.util.Arrays.asList(
                 MapConfigOption.integer(LAVA_RATE_KEY, 2, 0, 60),
                 MapConfigOption.integer(LAVA_START_Y_KEY, 64, -64, 320),
                 MapConfigOption.integer(BORDER_SIZE_KEY, 0, 0, 60000000),

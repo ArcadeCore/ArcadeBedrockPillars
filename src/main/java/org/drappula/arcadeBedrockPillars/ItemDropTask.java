@@ -3,6 +3,7 @@ package org.drappula.arcadeBedrockPillars;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import com.cryptomorin.xseries.XMaterial;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -15,18 +16,18 @@ public class ItemDropTask extends BukkitRunnable {
 
     public ItemDropTask(IMatch match) {
         this.match = match;
-        pool = new ArrayList<>();
+        pool = new ArrayList<ItemStack>();
         for (String entry : ArcadeBedrockPillars.get().getConfig().getStringList("items")) {
             // "MATERIAL" or "MATERIAL:amount"; unknown materials are skipped.
             String[] parts = entry.split(":", 2);
-            Material material = Material.matchMaterial(parts[0].trim());
+            // XMaterial maps modern names (OAK_PLANKS, WHITE_WOOL...) to the running version, null if unsupported.
+            XMaterial wanted = XMaterial.matchXMaterial(parts[0].trim()).orElse(null);
+            Material material = wanted == null ? null : wanted.parseMaterial();
             if (material == null) {
                 continue;
             }
-            int amount = switch (material) {
-                case ARROW, SNOWBALL, EGG -> 8;
-                default -> 1;
-            };
+            int amount = (material.name().equals("ARROW") || material.name().equals("SNOWBALL")
+                    || material.name().equals("EGG")) ? 8 : 1;
             if (parts.length == 2) {
                 try {
                     amount = Math.max(1, Math.min(material.getMaxStackSize(), Integer.parseInt(parts[1].trim())));
@@ -34,7 +35,9 @@ public class ItemDropTask extends BukkitRunnable {
                     // keep the default amount
                 }
             }
-            pool.add(new ItemStack(material, amount));
+            ItemStack stack = wanted.parseItem();
+            stack.setAmount(amount);
+            pool.add(stack);
         }
     }
 

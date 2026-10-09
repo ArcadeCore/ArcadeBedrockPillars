@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -102,37 +103,17 @@ class BedrockPillarsListenerTest extends PluginTest {
     }
 
     @Test
-    void queueEnterShowsWaitingBar() {
+    void queueEnterShowsWaitingActionBar() {
         PlayerMock player = server.addPlayer();
-        when(queueManager.isQueued(player)).thenReturn(true);
+        org.drappula.arcadeApi.message.ScreenText screen = mock(org.drappula.arcadeApi.message.ScreenText.class);
+        org.drappula.arcadeApi.message.Messages.useScreenText(screen);
+        try {
+            server.getPluginManager().callEvent(new QueueEnterEvent(player, game));
 
-        server.getPluginManager().callEvent(new QueueEnterEvent(player, game));
-
-        assertFalse(player.getBossBars().isEmpty());
-    }
-
-    @Test
-    void queueEnterDeniedHidesBar() {
-        PlayerMock player = server.addPlayer();
-        when(queueManager.isQueued(player)).thenReturn(false);
-
-        server.getPluginManager().callEvent(new QueueEnterEvent(player, game));
-        server.getScheduler().performTicks(1);
-
-        assertTrue(player.getBossBars().isEmpty());
-    }
-
-    @Test
-    void queueLeaveHidesBar() {
-        PlayerMock player = server.addPlayer();
-        when(queueManager.isQueued(player)).thenReturn(true);
-        server.getPluginManager().callEvent(new QueueEnterEvent(player, game));
-        assertFalse(player.getBossBars().isEmpty());
-
-        server.getPluginManager().callEvent(
-                new QueueLeaveEvent(player, game, QueueLeaveReason.LEAVE));
-
-        assertTrue(player.getBossBars().isEmpty());
+            verify(screen).actionBar(eq(player), org.mockito.ArgumentMatchers.contains("Waiting for players"));
+        } finally {
+            org.drappula.arcadeApi.message.Messages.useScreenText(null);
+        }
     }
 
     @Test
@@ -141,49 +122,15 @@ class BedrockPillarsListenerTest extends PluginTest {
         when(other.getId()).thenReturn("other-game");
         PlayerMock player = server.addPlayer();
 
-        server.getPluginManager().callEvent(new QueueEnterEvent(player, other));
-        server.getScheduler().performTicks(1);
+        org.drappula.arcadeApi.message.ScreenText screen = mock(org.drappula.arcadeApi.message.ScreenText.class);
+        org.drappula.arcadeApi.message.Messages.useScreenText(screen);
+        try {
+            server.getPluginManager().callEvent(new QueueEnterEvent(player, other));
 
-        assertTrue(player.getBossBars().isEmpty());
-    }
-
-    @Test
-    void startedTransitionClearsWaitingBars() {
-        PlayerMock player = server.addPlayer();
-        when(queueManager.isQueued(player)).thenReturn(true);
-        server.getPluginManager().callEvent(new QueueEnterEvent(player, game));
-        server.getScheduler().performTicks(1);
-        assertFalse(player.getBossBars().isEmpty());
-        IMatch match = matchOf(game, List.of(participant(player, null, false)));
-
-        server.getPluginManager().callEvent(
-                new MatchStateChangeEvent(match, MatchState.STARTING, MatchState.STARTED));
-
-        assertTrue(player.getBossBars().isEmpty());
-    }
-
-    @Test
-    void fullQueueToStartLeavesNoWaitingBar() {
-        PlayerMock player = server.addPlayer();
-        when(queueManager.isQueued(player)).thenReturn(true);
-        server.getPluginManager().callEvent(new QueueEnterEvent(player, game));
-        server.getScheduler().performTicks(1);
-        assertFalse(player.getBossBars().isEmpty());
-
-        // Production order: queue-leave (match start) fires before MatchStartEvent.
-        IMatch match = matchOf(game, List.of(participant(player, null, false)));
-        org.drappula.arcadeApi.systems.map.IArcadeMap pool = poolMap();
-        when(match.getMap()).thenReturn(pool);
-        server.getPluginManager().callEvent(
-                new QueueLeaveEvent(player, game, QueueLeaveReason.MATCH_START));
-        assertTrue(player.getBossBars().isEmpty());
-
-        server.getPluginManager().callEvent(new MatchStartEvent(match));
-        server.getScheduler().performTicks(20);
-
-        server.getPluginManager().callEvent(
-                new MatchStateChangeEvent(match, MatchState.STARTING, MatchState.STARTED));
-        assertTrue(player.getBossBars().isEmpty());
+            org.mockito.Mockito.verifyNoInteractions(screen);
+        } finally {
+            org.drappula.arcadeApi.message.Messages.useScreenText(null);
+        }
     }
 
     @Test
@@ -271,9 +218,6 @@ class BedrockPillarsListenerTest extends PluginTest {
         when(match.getMap()).thenReturn(pool);
 
         server.getPluginManager().callEvent(new MatchStartEvent(match));
-
-        // No loading bar for pool maps.
-        assertTrue(first.getBossBars().isEmpty());
 
         server.getPluginManager().callEvent(
                 new MatchStateChangeEvent(match, MatchState.STARTING, MatchState.STARTED));

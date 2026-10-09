@@ -1,9 +1,8 @@
 package org.drappula.arcadeBedrockPillars;
 
-import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.tree.LiteralCommandNode;
-import io.papermc.paper.command.brigadier.CommandSourceStack;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
+import org.drappula.arcadeApi.message.LegacyText;
 import org.drappula.arcadeApi.systems.game.Game;
 import org.drappula.arcadeApi.systems.game.IMatch;
 import org.drappula.arcadeApi.systems.game.IParticipant;
@@ -11,14 +10,13 @@ import org.drappula.arcadeApi.systems.queue.JoinResult;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
 
-import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -28,101 +26,97 @@ import static org.mockito.Mockito.when;
 class BedrockPillarsCommandTest extends PluginTest {
 
     private final BedrockPillarsGame game = new BedrockPillarsGame();
+    private final BedrockPillarsCommand command = new BedrockPillarsCommand(game);
 
-    private CommandContext<CommandSourceStack> contextWithSender(Object sender) {
-        CommandSourceStack stack = mock(CommandSourceStack.class);
-        when(stack.getSender()).thenReturn((org.bukkit.command.CommandSender) sender);
-        @SuppressWarnings("unchecked")
-        CommandContext<CommandSourceStack> context = mock(CommandContext.class);
-        when(context.getSource()).thenReturn(stack);
-        return context;
-    }
-
-    private int invoke(String name, CommandContext<CommandSourceStack> context, boolean withGame) throws Exception {
-        Method method;
-        Object result;
-        if (withGame) {
-            method = BedrockPillarsCommand.class.getDeclaredMethod(name, CommandContext.class, BedrockPillarsGame.class);
-            method.setAccessible(true);
-            result = method.invoke(null, context, game);
-        } else {
-            method = BedrockPillarsCommand.class.getDeclaredMethod(name, CommandContext.class);
-            method.setAccessible(true);
-            result = method.invoke(null, context);
-        }
-        return (int) result;
+    private void run(CommandSender sender, String... args) {
+        command.onCommand(sender, mock(Command.class), "bp", args);
     }
 
     private String nextMessage(PlayerMock player) {
-        return PlainTextComponentSerializer.plainText().serialize(player.nextComponentMessage());
+        return LegacyText.strip(player.nextMessage());
     }
 
     private String nextConsoleMessage() {
-        return PlainTextComponentSerializer.plainText()
-                .serialize(server.getConsoleSender().nextComponentMessage());
+        return LegacyText.strip(server.getConsoleSender().nextMessage());
+    }
+
+    private PlayerMock debugPlayer() {
+        PlayerMock player = server.addPlayer();
+        player.addAttachment(plugin, "bedrockpillars.debug", true);
+        return player;
     }
 
     @Test
-    void commandTreeShape() {
-        LiteralCommandNode<CommandSourceStack> node = BedrockPillarsCommand.get(game);
+    void tabCompletionHidesDebugWithoutPermission() {
+        PlayerMock plain = server.addPlayer();
+        PlayerMock privileged = debugPlayer();
 
-        assertEquals("bp", node.getName());
-        Set<String> children = node.getChildren().stream()
-                .map(child -> child.getName())
-                .collect(Collectors.toSet());
-        assertEquals(Set.of("join", "leave", "chaos", "debug"), children);
+        assertEquals(Arrays.asList("join", "leave", "chaos"),
+                command.onTabComplete(plain, mock(Command.class), "bp", new String[]{""}));
+        assertTrue(command.onTabComplete(privileged, mock(Command.class), "bp", new String[]{""}).contains("debug"));
+        assertEquals(Arrays.asList("win", "lose", "end"),
+                command.onTabComplete(privileged, mock(Command.class), "bp", new String[]{"debug", ""}));
     }
 
     @Test
-    void infoShowsUsage() throws Exception {
+    void debugRequiresPermission() {
         PlayerMock player = server.addPlayer();
 
-        invoke("info", contextWithSender(player), false);
+        run(player, "debug", "win");
+
+        assertTrue(nextMessage(player).contains("permission"));
+    }
+
+    @Test
+    void infoShowsUsage() {
+        PlayerMock player = server.addPlayer();
+
+        run(player);
 
         assertTrue(nextMessage(player).contains("/bp join | /bp leave"));
     }
 
     @Test
-    void joinQueuesPlayer() throws Exception {
+    void joinQueuesPlayer() {
         PlayerMock player = server.addPlayer();
         when(queueManager.joinQueue(eq(player), any(Game.class))).thenReturn(JoinResult.SUCCESS);
 
-        invoke("join", contextWithSender(player), true);
+        run(player, "join");
 
         verify(queueManager).joinQueue(eq(player), any(Game.class));
         assertTrue(nextMessage(player).contains("Joined the Bedrock Pillars queue."));
     }
 
     @Test
-    void joinFailureExplains() throws Exception {
+    void joinFailureExplains() {
         PlayerMock player = server.addPlayer();
         when(queueManager.joinQueue(eq(player), any(Game.class))).thenReturn(JoinResult.ALREADY_QUEUED);
 
-        invoke("join", contextWithSender(player), true);
+        run(player, "join");
 
         assertTrue(nextMessage(player).contains("Failed to join the queue."));
     }
 
     @Test
-    void joinRejectsConsole() throws Exception {
-        invoke("join", contextWithSender(server.getConsoleSender()), true);
+    void joinRejectsConsole() {
+        run(server.getConsoleSender(), "join");
 
         assertTrue(nextConsoleMessage().contains("Only players can join"));
     }
 
     @Test
-    void leaveRemovesFromQueue() throws Exception {
+    void leaveRemovesFromQueue() {
         PlayerMock player = server.addPlayer();
 
-        invoke("leave", contextWithSender(player), false);
+        run(player, "leave");
 
         verify(queueManager).leaveQueue(player);
         assertTrue(nextMessage(player).contains("Left the Bedrock Pillars queue."));
     }
 
     @Test
-    void leaveRejectsConsole() throws Exception {
-        invoke("leave", contextWithSender(server.getConsoleSender()), false);
+    void leaveRejectsConsole() {
+        run(server.getConsoleSender(), "leave");
 
         assertTrue(nextConsoleMessage().contains("Only players can leave"));
     }
@@ -143,80 +137,81 @@ class BedrockPillarsCommandTest extends PluginTest {
     }
 
     @Test
-    void chaosGivesTargetAnItemAndBroadcastsWithMessagePrefix() throws Exception {
+    void chaosGivesTargetAnItemAndBroadcastsWithMessagePrefix() {
         PlayerMock spectator = server.addPlayer();
         PlayerMock target = server.addPlayer();
         IMatch match = chaosMatch(spectator, target);
 
-        invoke("chaos", contextWithSender(spectator), true);
+        run(spectator, "chaos");
 
         assertTrue(target.getInventory().contains(org.bukkit.Material.COBWEB));
         // The core drops unprefixed broadcast text for players.
-        verify(match).broadcast(org.mockito.ArgumentMatchers.startsWith("message:"));
+        verify(match).broadcast(org.mockito.ArgumentMatchers.startsWith("message:"),
+                eq("spectator"), eq(spectator.getName()), eq("target"), eq(target.getName()));
     }
 
     @Test
-    void chaosHonoursCooldown() throws Exception {
+    void chaosHonoursCooldown() {
         PlayerMock spectator = server.addPlayer();
         PlayerMock target = server.addPlayer();
         IMatch match = chaosMatch(spectator, target);
 
-        invoke("chaos", contextWithSender(spectator), true);
-        invoke("chaos", contextWithSender(spectator), true);
+        run(spectator, "chaos");
+        run(spectator, "chaos");
 
-        verify(match, org.mockito.Mockito.times(1)).broadcast(org.mockito.ArgumentMatchers.anyString());
+        verify(match, org.mockito.Mockito.times(1)).broadcast(anyString(), anyString(), anyString(), anyString(), anyString());
     }
 
     @Test
-    void chaosRejectsNonSpectators() throws Exception {
+    void chaosRejectsNonSpectators() {
         PlayerMock player = server.addPlayer();
         var matchManager = mock(org.drappula.arcadeApi.systems.game.IMatchManager.class);
         when(api.getMatchManager()).thenReturn(matchManager);
         when(matchManager.getMatch(player)).thenReturn(java.util.Optional.empty());
 
-        invoke("chaos", contextWithSender(player), true);
+        run(player, "chaos");
 
         assertTrue(nextMessage(player).contains("must be spectating"));
     }
 
     @Test
-    void debugWinEndsMatchWithWinner() throws Exception {
-        PlayerMock player = server.addPlayer();
+    void debugWinEndsMatchWithWinner() {
+        PlayerMock player = debugPlayer();
         IParticipant participant = mock(IParticipant.class);
         IMatch match = mock(IMatch.class);
         when(participant.getPlayer()).thenReturn(player);
         when(participant.getMatch()).thenReturn(match);
         when(api.getParticipant(any(Game.class), eq(player))).thenReturn(participant);
 
-        invoke("debugWin", contextWithSender(player), true);
+        run(player, "debug", "win");
 
-        verify(match).endWithWinners(List.of(participant));
+        verify(match).endWithWinners(java.util.Collections.singletonList(participant));
         assertTrue(nextMessage(player).contains("winner"));
     }
 
     @Test
-    void debugLoseEliminatesSelf() throws Exception {
-        PlayerMock player = server.addPlayer();
+    void debugLoseEliminatesSelf() {
+        PlayerMock player = debugPlayer();
         IParticipant participant = mock(IParticipant.class);
         when(participant.getPlayer()).thenReturn(player);
         when(api.getParticipant(any(Game.class), eq(player))).thenReturn(participant);
 
-        invoke("debugLose", contextWithSender(player), true);
+        run(player, "debug", "lose");
 
         verify(participant).eliminate();
         assertTrue(nextMessage(player).contains("eliminated"));
     }
 
     @Test
-    void debugEndEndsMatchWithoutWinners() throws Exception {
-        PlayerMock player = server.addPlayer();
+    void debugEndEndsMatchWithoutWinners() {
+        PlayerMock player = debugPlayer();
         IParticipant participant = mock(IParticipant.class);
         IMatch match = mock(IMatch.class);
         when(participant.getPlayer()).thenReturn(player);
         when(participant.getMatch()).thenReturn(match);
         when(api.getParticipant(any(Game.class), eq(player))).thenReturn(participant);
 
-        invoke("debugEnd", contextWithSender(player), true);
+        run(player, "debug", "end");
 
         verify(match).end();
         verify(match, never()).setWinnerParticipants(any());
@@ -224,18 +219,20 @@ class BedrockPillarsCommandTest extends PluginTest {
     }
 
     @Test
-    void debugOutsideMatchExplains() throws Exception {
-        PlayerMock player = server.addPlayer();
+    void debugOutsideMatchExplains() {
+        PlayerMock player = debugPlayer();
         when(api.getParticipant(any(Game.class), eq(player))).thenReturn(null);
 
-        invoke("debugWin", contextWithSender(player), true);
+        run(player, "debug", "win");
 
         assertTrue(nextMessage(player).contains("not in a Bedrock Pillars match"));
     }
 
     @Test
-    void debugRejectsConsole() throws Exception {
-        invoke("debugWin", contextWithSender(server.getConsoleSender()), true);
+    void debugRejectsConsole() {
+        CommandSender console = server.getConsoleSender();
+        console.addAttachment(plugin, "bedrockpillars.debug", true);
+        run(console, "debug", "win");
 
         assertTrue(nextConsoleMessage().contains("Only players can use debug commands"));
     }
