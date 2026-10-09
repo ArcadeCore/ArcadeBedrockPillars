@@ -116,4 +116,24 @@ class ItemDropTaskTest extends PluginTest {
 
         assertEquals(0, itemCount(player));
     }
+
+    @Test
+    void entriesCanSetAmountCappedAtStackSize() {
+        plugin.getConfig().set("items", List.of("COBBLESTONE:32"));
+        PlayerMock player = server.addPlayer();
+        IParticipant solo = participant(player, false);
+        IMatch match = mock(IMatch.class);
+        when(match.getParticipants()).thenReturn(List.of(solo));
+
+        new ItemDropTask(match).run();
+        assertEquals(32, player.getInventory().getItem(0).getAmount());
+
+        plugin.getConfig().set("items", List.of("SHIELD:5", "COBBLESTONE:abc"));
+        PlayerMock other = server.addPlayer();
+        IParticipant solo2 = participant(other, false);
+        when(match.getParticipants()).thenReturn(List.of(solo2));
+        for (int i = 0; i < 20; i++) new ItemDropTask(match).run();
+        assertTrue(itemCount(other) > 0);
+        assertEquals(1, other.getInventory().getItem(0).getAmount()); // shield max stack 1, bad amount -> default
+    }
 }

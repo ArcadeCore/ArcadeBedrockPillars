@@ -3,10 +3,20 @@ max-players: 20
 
 item-interval-seconds: 5
 
+# MATERIAL or MATERIAL:amount (amount capped at the stack size). Blocks come as
+# stacks so players can keep pillaring; no water/lava buckets (they cancel the lava).
 items:
+  - COBBLESTONE:32
+  - OAK_PLANKS:32
+  - DIRT:32
+  - SANDSTONE:32
+  - STONE_BRICKS:32
+  - WHITE_WOOL:32
+  - GLASS:16
+  - NETHERRACK:32
   - COBWEB
-  - SLIME_BLOCK
-  - SCAFFOLDING
+  - SLIME_BLOCK:4
+  - SCAFFOLDING:8
   - SNOWBALL
   - EGG
   - BOW
@@ -15,7 +25,6 @@ items:
   - SHIELD
   - ENDER_PEARL
   - GOLDEN_APPLE
-  - WATER_BUCKET
   - TNT
 
 # Spectator /bp chaos: drops a random item on a random alive player

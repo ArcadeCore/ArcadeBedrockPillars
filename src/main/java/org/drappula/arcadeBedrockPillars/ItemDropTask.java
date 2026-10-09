@@ -11,18 +11,30 @@ import org.drappula.arcadeApi.systems.game.IParticipant;
 
 public class ItemDropTask extends BukkitRunnable {
     private final IMatch match;
-    private final List<Material> pool;
+    private final List<ItemStack> pool;
 
     public ItemDropTask(IMatch match) {
         this.match = match;
-        List<String> names = ArcadeBedrockPillars.get().getConfig().getStringList("items");
         pool = new ArrayList<>();
-        for (String name : names) {
-            Material material = Material.matchMaterial(name);
+        for (String entry : ArcadeBedrockPillars.get().getConfig().getStringList("items")) {
+            // "MATERIAL" or "MATERIAL:amount"; unknown materials are skipped.
+            String[] parts = entry.split(":", 2);
+            Material material = Material.matchMaterial(parts[0].trim());
             if (material == null) {
                 continue;
             }
-            pool.add(material);
+            int amount = switch (material) {
+                case ARROW, SNOWBALL, EGG -> 8;
+                default -> 1;
+            };
+            if (parts.length == 2) {
+                try {
+                    amount = Math.max(1, Math.min(material.getMaxStackSize(), Integer.parseInt(parts[1].trim())));
+                } catch (NumberFormatException ignored) {
+                    // keep the default amount
+                }
+            }
+            pool.add(new ItemStack(material, amount));
         }
     }
 
@@ -44,12 +56,7 @@ public class ItemDropTask extends BukkitRunnable {
         if (pool.isEmpty()) {
             return false;
         }
-        Material material = pool.get(ThreadLocalRandom.current().nextInt(pool.size()));
-        int amount = switch (material) {
-            case ARROW, SNOWBALL, EGG -> 8;
-            default -> 1;
-        };
-        player.getInventory().addItem(new ItemStack(material, amount));
+        player.getInventory().addItem(pool.get(ThreadLocalRandom.current().nextInt(pool.size())).clone());
         return true;
     }
 }

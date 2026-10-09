@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -28,7 +29,8 @@ class ArcadeBedrockPillarsTest extends PluginTest {
         assertEquals(1, plugin.getConfig().getInt("min-players"));
         assertEquals(20, plugin.getConfig().getInt("max-players"));
         assertEquals(5, plugin.getConfig().getInt("item-interval-seconds"));
-        assertEquals(13, plugin.getConfig().getStringList("items").size());
+        assertEquals(20, plugin.getConfig().getStringList("items").size());
+        assertFalse(plugin.getConfig().getStringList("items").stream().anyMatch(i -> i.contains("BUCKET")));
     }
 
     @Test
