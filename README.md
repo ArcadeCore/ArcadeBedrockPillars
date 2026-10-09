@@ -18,10 +18,11 @@ MockBukkit v1.21.
 
 Verified: ArcadeCore + ArcadeBedrockPillars + ArcadeFFA + ArcadeHub boot on
 Paper 1.8.8, 1.12.2, 1.16.5, 1.20.4, 1.21.4 and 26.3, and the command smoke
-test runs, with 0 errors in the log. Not verified: a full bot-driven match
-(queue, countdown, lava, drops, win) on each version. Treat gameplay on any
-version you have not played yourself as untested, and read "Per-version
-caveats" below.
+test runs, with 0 errors in the log. The full-match bot run covers ArcadeFFA,
+not Bedrock Pillars: its lava rise, item drops and win condition have unit
+tests but have not been played by bots on each version. Treat Bedrock Pillars
+gameplay on any version you have not played yourself as untested, and read
+"Per-version caveats" below.
 
 ## Install
 
