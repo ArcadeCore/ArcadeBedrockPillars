@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import net.kyori.adventure.bossbar.BossBar;
-import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -47,29 +46,14 @@ public class BedrockPillarsListener implements Listener {
         }
     }
 
-    private void recordStats(IMatch match, IParticipant victim, Player killer) {
-        var stats = ArcadeAPIProvider.get().getStatsManager();
-        try {
-            if (match.getStartedAt() != null) {
-                long secs = java.time.Duration.between(match.getStartedAt(), java.time.Instant.now()).toSeconds();
-                stats.addStat(victim.getPlayer().getUniqueId(), victim.getPlayer().getName(),
-                        game.getId(), "survival_seconds", (int) secs);
-            }
-            if (killer != null && !killer.equals(victim.getPlayer())) {
-                stats.addStat(killer.getUniqueId(), killer.getName(), game.getId(), "kills", 1);
-            }
-        } catch (java.sql.SQLException e) {
-            ArcadeBedrockPillars.get().getSLF4JLogger().error("Failed to record Bedrock Pillars stats", e);
-        }
-    }
-
     @EventHandler
     public void onParticipantEliminate(ParticipantEliminateEvent event) {
         IMatch match = event.getParticipant().getMatch();
         if (!match.getGame().getId().equals(game.getId())) {
             return;
         }
-        recordStats(match, event.getParticipant(), event.getKiller());
+        // TODO: record kills/survival once ArcadeAPI exposes addStat
+        // (IGameStatsManager currently only has addPoints).
         // The victim still counts as alive while this event fires, so decide
         // next tick once elimination bookkeeping has completed.
         Bukkit.getScheduler().runTask((Plugin) ArcadeBedrockPillars.get(), () -> {
@@ -121,8 +105,10 @@ public class BedrockPillarsListener implements Listener {
             return;
         }
         Player player = event.getPlayer();
-        BossBar bar = BossBar.bossBar(Component.text("Waiting for players"), 1.0f,
-                BossBar.Color.BLUE, BossBar.Overlay.PROGRESS);
+        BossBar bar = BossBar.bossBar(
+                Messages.bossbar(Messages.QUEUE_WAITING_BOSSBAR, Messages.QUEUE_WAITING_BOSSBAR_DEFAULT,
+                        java.util.Map.of()),
+                1.0f, BossBar.Color.BLUE, BossBar.Overlay.PROGRESS);
         player.showBossBar(bar);
         waitingBars.put(player.getUniqueId(), bar);
         // If the join was denied by a later handler, take the bar back.

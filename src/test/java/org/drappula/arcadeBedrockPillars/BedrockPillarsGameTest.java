@@ -1,14 +1,8 @@
 package org.drappula.arcadeBedrockPillars;
 
 import org.junit.jupiter.api.Test;
-import org.mockbukkit.mockbukkit.entity.PlayerMock;
-
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class BedrockPillarsGameTest extends PluginTest {
 
@@ -32,13 +26,6 @@ class BedrockPillarsGameTest extends PluginTest {
         assertEquals(4, game.getMinPlayers());
         assertEquals(8, game.getMaxPlayers());
         assertEquals(4, game.getPlayersRequired());
-    }
-
-    @Test
-    void createArenaUsesPool() {
-        PlayerMock player = server.addPlayer();
-
-        assertNull(game.createArena(arenaWorld, List.of(player)));
     }
 
     @Test

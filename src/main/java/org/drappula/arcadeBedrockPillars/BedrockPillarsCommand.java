@@ -32,12 +32,12 @@ public class BedrockPillarsCommand {
     /** Spectators drop a random item on a random surviving player. Limited by cooldown and per-match cap. */
     private static int chaos(CommandContext<CommandSourceStack> ctx, BedrockPillarsGame game) {
         if (!(ctx.getSource().getSender() instanceof Player spectator)) {
-            ctx.getSource().getSender().sendRichMessage("<red>Only spectators can cause chaos.");
+            Messages.send(ctx.getSource().getSender(), Messages.CHAOS_NOT_PLAYER, Messages.CHAOS_NOT_PLAYER_DEFAULT);
             return 1;
         }
         var match = ArcadeAPIProvider.get().getMatchManager().getMatch(spectator).orElse(null);
         if (match == null || !match.getGame().getId().equals(game.getId()) || !match.isSpectating(spectator)) {
-            spectator.sendRichMessage("<red>You must be spectating a Bedrock Pillars match.");
+            Messages.send(spectator, Messages.CHAOS_MUST_SPECTATE, Messages.CHAOS_MUST_SPECTATE_DEFAULT);
             return 1;
         }
         var cfg = ArcadeBedrockPillars.get().getConfig();
@@ -46,11 +46,13 @@ public class BedrockPillarsCommand {
         long now = System.currentTimeMillis();
         Long last = game.chaosLast.get(spectator.getUniqueId());
         if (last != null && now - last < cooldownMs) {
-            spectator.sendRichMessage("<red>Chaos on cooldown: " + ((cooldownMs - (now - last)) / 1000 + 1) + "s.");
+            long seconds = (cooldownMs - (now - last)) / 1000 + 1;
+            Messages.send(spectator, Messages.CHAOS_COOLDOWN, Messages.CHAOS_COOLDOWN_DEFAULT,
+                    java.util.Map.of("seconds", String.valueOf(seconds)));
             return 1;
         }
         if (game.chaosUses.getOrDefault(match, 0) >= cap) {
-            spectator.sendRichMessage("<red>This match has had enough chaos.");
+            Messages.send(spectator, Messages.CHAOS_MATCH_CAP, Messages.CHAOS_MATCH_CAP_DEFAULT);
             return 1;
         }
         List<IParticipant> alive = match.getAliveParticipants();
@@ -64,52 +66,55 @@ public class BedrockPillarsCommand {
         game.chaosLast.put(spectator.getUniqueId(), now);
         game.chaosUses.merge(match, 1, Integer::sum);
         // Core routes by prefix; unprefixed text is dropped for players.
-        match.broadcast("message:<light_purple>" + spectator.getName() + " sent chaos to " + target.getPlayer().getName() + "!");
+        String inner = Messages.resolve(
+                Messages.get(Messages.CHAOS_BROADCAST, Messages.CHAOS_BROADCAST_DEFAULT),
+                java.util.Map.of("spectator", spectator.getName(), "target", target.getPlayer().getName()));
+        match.broadcast("message:" + inner);
         return 1;
     }
 
     private static int info(CommandContext<CommandSourceStack> ctx) {
-        ctx.getSource().getSender().sendRichMessage("<aqua><b>Bedrock Pillars</b></aqua> <gray>- /bp join | /bp leave");
+        Messages.send(ctx.getSource().getSender(), Messages.INFO, Messages.INFO_DEFAULT);
         return 1;
     }
 
     private static int join(CommandContext<CommandSourceStack> ctx, BedrockPillarsGame game) {
         CommandSender sender = ctx.getSource().getSender();
         if (!(sender instanceof Player)) {
-            ctx.getSource().getSender().sendRichMessage("<red>Only players can join the Bedrock Pillars queue.");
+            Messages.send(ctx.getSource().getSender(), Messages.JOIN_ONLY_PLAYERS, Messages.JOIN_ONLY_PLAYERS_DEFAULT);
             return 1;
         }
         Player player = (Player) sender;
         if (ArcadeAPIProvider.get().getQueueManager().joinQueue(player, (Game) game) != JoinResult.SUCCESS) {
-            player.sendRichMessage("<red>Failed to join the queue.");
+            Messages.send(player, Messages.JOIN_FAILED, Messages.JOIN_FAILED_DEFAULT);
             return 1;
         }
-        player.sendRichMessage("<green>Joined the Bedrock Pillars queue.");
+        Messages.send(player, Messages.JOIN_SUCCESS, Messages.JOIN_SUCCESS_DEFAULT);
         return 1;
     }
 
     private static int leave(CommandContext<CommandSourceStack> ctx) {
         CommandSender sender = ctx.getSource().getSender();
         if (!(sender instanceof Player)) {
-            ctx.getSource().getSender().sendRichMessage("<red>Only players can leave the Bedrock Pillars queue.");
+            Messages.send(ctx.getSource().getSender(), Messages.LEAVE_ONLY_PLAYERS, Messages.LEAVE_ONLY_PLAYERS_DEFAULT);
             return 1;
         }
         Player player = (Player) sender;
         ArcadeAPIProvider.get().getQueueManager().leaveQueue(player);
-        player.sendRichMessage("<yellow>Left the Bedrock Pillars queue.");
+        Messages.send(player, Messages.LEAVE_SUCCESS, Messages.LEAVE_SUCCESS_DEFAULT);
         return 1;
     }
 
     private static IParticipant requireParticipant(CommandContext<CommandSourceStack> ctx, BedrockPillarsGame game) {
         CommandSender sender = ctx.getSource().getSender();
         if (!(sender instanceof Player)) {
-            ctx.getSource().getSender().sendRichMessage("<red>Only players can use debug commands.");
+            Messages.send(ctx.getSource().getSender(), Messages.DEBUG_ONLY_PLAYERS, Messages.DEBUG_ONLY_PLAYERS_DEFAULT);
             return null;
         }
         Player player = (Player) sender;
         IParticipant participant = ArcadeAPIProvider.get().getParticipant((Game) game, player);
         if (participant == null) {
-            player.sendRichMessage("<red>You are not in a Bedrock Pillars match.");
+            Messages.send(player, Messages.DEBUG_NOT_IN_MATCH, Messages.DEBUG_NOT_IN_MATCH_DEFAULT);
             return null;
         }
         return participant;
@@ -121,7 +126,7 @@ public class BedrockPillarsCommand {
             return 1;
         }
         participant.getMatch().endWithWinners(List.of(participant));
-        participant.getPlayer().sendRichMessage("<green>Debug: declared winner, match ended.");
+        Messages.send(participant.getPlayer(), Messages.DEBUG_WIN, Messages.DEBUG_WIN_DEFAULT);
         return 1;
     }
 
@@ -131,7 +136,7 @@ public class BedrockPillarsCommand {
             return 1;
         }
         participant.eliminate();
-        participant.getPlayer().sendRichMessage("<yellow>Debug: eliminated.");
+        Messages.send(participant.getPlayer(), Messages.DEBUG_LOSE, Messages.DEBUG_LOSE_DEFAULT);
         return 1;
     }
 
@@ -141,7 +146,7 @@ public class BedrockPillarsCommand {
             return 1;
         }
         participant.getMatch().end();
-        participant.getPlayer().sendRichMessage("<yellow>Debug: match ended with no winners.");
+        Messages.send(participant.getPlayer(), Messages.DEBUG_END, Messages.DEBUG_END_DEFAULT);
         return 1;
     }
 }

@@ -136,4 +136,14 @@ class ItemDropTaskTest extends PluginTest {
         assertTrue(itemCount(other) > 0);
         assertEquals(1, other.getInventory().getItem(0).getAmount()); // shield max stack 1, bad amount -> default
     }
+
+    @Test
+    void giveReturnsFalseOnEmptyPool() {
+        plugin.getConfig().set("items", List.of());
+        PlayerMock player = server.addPlayer();
+        IMatch match = mock(IMatch.class);
+
+        assertEquals(false, new ItemDropTask(match).give(player));
+        assertEquals(0, itemCount(player));
+    }
 }

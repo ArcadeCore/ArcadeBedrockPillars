@@ -31,6 +31,12 @@ class ArcadeBedrockPillarsTest extends PluginTest {
         assertEquals(5, plugin.getConfig().getInt("item-interval-seconds"));
         assertEquals(20, plugin.getConfig().getStringList("items").size());
         assertFalse(plugin.getConfig().getStringList("items").stream().anyMatch(i -> i.contains("BUCKET")));
+        assertEquals("<green>Joined the Bedrock Pillars queue.",
+                plugin.getConfig().getString("messages.join.success"));
+        assertEquals("Waiting for players",
+                plugin.getConfig().getString("messages.queue.waiting-bossbar"));
+        assertEquals("<light_purple><spectator> sent chaos to <target>!",
+                plugin.getConfig().getString("messages.chaos.broadcast"));
     }
 
     @Test

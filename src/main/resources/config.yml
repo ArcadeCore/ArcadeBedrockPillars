@@ -31,3 +31,30 @@ items:
 chaos:
   cooldown-seconds: 20
   max-per-match: 10
+
+# All player-facing text. MiniMessage format. Placeholders:
+#   messages.chaos.cooldown: <seconds>
+#   messages.chaos.broadcast: <spectator> <target>
+messages:
+  info: "<aqua><b>Bedrock Pillars</b></aqua> <gray>- /bp join | /bp leave"
+  join:
+    only-players: "<red>Only players can join the Bedrock Pillars queue."
+    failed: "<red>Failed to join the queue."
+    success: "<green>Joined the Bedrock Pillars queue."
+  leave:
+    only-players: "<red>Only players can leave the Bedrock Pillars queue."
+    success: "<yellow>Left the Bedrock Pillars queue."
+  chaos:
+    not-player: "<red>Only spectators can cause chaos."
+    must-spectate: "<red>You must be spectating a Bedrock Pillars match."
+    cooldown: "<red>Chaos on cooldown: <seconds>s."
+    match-cap: "<red>This match has had enough chaos."
+    broadcast: "<light_purple><spectator> sent chaos to <target>!"
+  debug:
+    only-players: "<red>Only players can use debug commands."
+    not-in-match: "<red>You are not in a Bedrock Pillars match."
+    win: "<green>Debug: declared winner, match ended."
+    lose: "<yellow>Debug: eliminated."
+    end: "<yellow>Debug: match ended with no winners."
+  queue:
+    waiting-bossbar: "Waiting for players"

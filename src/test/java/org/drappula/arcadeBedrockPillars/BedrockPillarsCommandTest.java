@@ -74,6 +74,19 @@ class BedrockPillarsCommandTest extends PluginTest {
     }
 
     @Test
+    void debugSubtreeShape() {
+        LiteralCommandNode<CommandSourceStack> node = BedrockPillarsCommand.get(game);
+
+        var debug = node.getChildren().stream()
+                .filter(child -> child.getName().equals("debug"))
+                .findFirst().orElseThrow();
+        Set<String> debugChildren = debug.getChildren().stream()
+                .map(child -> child.getName())
+                .collect(Collectors.toSet());
+        assertEquals(Set.of("win", "lose", "end"), debugChildren);
+    }
+
+    @Test
     void infoShowsUsage() throws Exception {
         PlayerMock player = server.addPlayer();
 

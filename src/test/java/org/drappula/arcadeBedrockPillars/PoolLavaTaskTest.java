@@ -117,4 +117,27 @@ class PoolLavaTaskTest extends PluginTest {
         assertEquals(Material.AIR, arenaWorld.getBlockAt(2, 64, 2).getType());
         assertEquals(Material.STONE, arenaWorld.getBlockAt(2, 65, 2).getType());
     }
+
+    @Test
+    void restoreIsIdempotent() {
+        IArcadeMap map = poolMap(Map.of("lava-blocks-rise-per-minute", "60"));
+        PoolLavaTask task = new PoolLavaTask(map);
+        task.runTaskTimer(plugin, 0, 20);
+        server.getScheduler().performTicks(20);
+
+        task.restore();
+        task.restore();
+
+        assertEquals(Material.AIR, arenaWorld.getBlockAt(0, 64, 0).getType());
+    }
+
+    @Test
+    void emptySpawnsThrow() {
+        IArcadeMap map = org.mockito.Mockito.mock(IArcadeMap.class);
+        org.mockito.Mockito.when(map.getSpawnPoints()).thenReturn(List.of());
+        org.mockito.Mockito.when(map.getId()).thenReturn("void");
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> new PoolLavaTask(map));
+    }
 }
