@@ -10,13 +10,6 @@ if [ ! -f "$CORE_JAR" ]; then
   exit 1
 fi
 
-for jar in "$CORE_JAR" "$ADDON_JAR"; do
-  if [ ! -f "$jar" ]; then
-    echo "[prepare-run] FAIL: missing $jar (build it first)" >&2
-    exit 1
-  fi
-done
-
 mkdir -p "$ROOT/run/plugins"
 # Only ArcadeCore: run-paper installs this project's own jar into
 # run/plugins itself, so copying it here would load the plugin twice.
