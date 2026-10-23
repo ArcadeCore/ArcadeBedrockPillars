@@ -11,7 +11,7 @@ Paper 1.21.11 addon (`bedrock-pillars`) for ArcadeCore. Java 21 toolchain. See `
 - `./gradlew build` — compile + test + thin jar.
 - `./gradlew test` — unit suite (JUnit 5 + Mockito + MockBukkit, base class `PluginTest`).
 - `./gradlew runServer` — interactive local Paper 1.21.11 server. Run `scripts/prepare-run.sh` first.
-- `./gradlew smokeTest` — boots real Paper in tmux, asserts ArcadeCore + addon enable, runs `bp` from console, stops. First run takes ~5 min (Paper download); bootstrap once with `./gradlew runServer` (Ctrl-C after `Done`). Refuses to boot with < 1G free RAM.
+- `./gradlew smokeTest` — boots real Paper in tmux, asserts ArcadeCore + addon enable, runs `bp` from console, stops. First run takes ~5 min (Paper download); bootstrap once with `./gradlew runServer` (Ctrl-C after `Done`). Refuses to boot with < 2G free RAM.
 
 ## Dependency / classpath quirks
 
@@ -19,9 +19,9 @@ Paper 1.21.11 addon (`bedrock-pillars`) for ArcadeCore. Java 21 toolchain. See `
 - Tests redeclare both as `testImplementation`, with **MockBukkit first** in `build.gradle.kts` — it ships its own paper-api and must win classpath order.
 - `paper-plugin.yml`: `load: POSTWORLD`, ArcadeCore `BEFORE`, required.
 
-## Memory caps (do not raise)
+## Memory caps (do not raise above 2G)
 
-- `gradle.properties`: `-Xmx1g`, `workers.max=2`. `runServer`/smoke cap the server at `-Xms512M -Xmx1G`. Unbounded builds + a Paper server on one box have OOM-crashed this machine before.
+- `gradle.properties`: `-Xmx1g`, `workers.max=2`. `runServer`/smoke cap the server at `-Xms1G -Xmx2G`. Unbounded builds + a Paper server on one box have OOM-crashed this machine before.
 
 ## Architecture
 

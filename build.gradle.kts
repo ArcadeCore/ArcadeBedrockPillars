@@ -47,10 +47,11 @@ tasks {
         // Local Paper 1.21.11 test server with the plugin installed.
         // ArcadeCore must be present too: copy its shadow jar into run/plugins
         // (see scripts/prepare-run.sh) before launching.
-        // Memory is deliberately capped at 1G: a 2G server plus Gradle workers
-        // on a loaded desktop has OOM-crashed this machine before.
+        // Memory is deliberately capped at 2G (AGENTS.md): a bigger server
+        // plus Gradle workers on a loaded desktop has OOM-crashed this
+        // machine before.
         minecraftVersion("1.21.11")
-        jvmArgs("-Xms512M", "-Xmx1G")
+        jvmArgs("-Xms1G", "-Xmx2G")
     }
 
     // Real smoke test: boots Paper via runServer inside tmux with ArcadeCore

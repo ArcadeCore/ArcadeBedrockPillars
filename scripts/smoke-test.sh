@@ -33,15 +33,15 @@ echo "[smoke] paper=$PAPER_JAR"
 echo "eula=true" > "$RUN_DIR/eula.txt"
 
 tmux kill-session -t "$SESSION" 2>/dev/null || true
-# Fail fast instead of OOMing the box: a Paper server needs ~1G free.
+# Fail fast instead of OOMing the box: a 2G Paper server needs ~2G free.
 AVAILABLE_MB="$(free -m | awk '/^Mem:/ {print $7}')"
-if [ "${AVAILABLE_MB:-0}" -lt 1024 ]; then
-  echo "[smoke] FAIL: only ${AVAILABLE_MB}MB RAM available, need >= 1024MB. Free memory and re-run." >&2
+if [ "${AVAILABLE_MB:-0}" -lt 2048 ]; then
+  echo "[smoke] FAIL: only ${AVAILABLE_MB}MB RAM available, need >= 2048MB. Free memory and re-run." >&2
   exit 1
 fi
-# 1G cap, matching runServer in build.gradle.kts (see memory note there).
+# 2G cap, matching runServer in build.gradle.kts (see memory note there).
 tmux new-session -d -s "$SESSION" -x 200 -y 50 -c "$RUN_DIR" \
-  "java -Xms512M -Xmx1G -jar '$PAPER_JAR' nogui"
+  "java -Xms1G -Xmx2G -jar '$PAPER_JAR' nogui"
 
 cleanup() {
   tmux kill-session -t "$SESSION" 2>/dev/null || true
